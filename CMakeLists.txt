@@ -1,0 +1,5 @@
+cmake_minimum_required(VERSION 3.22.1)
+project(MCPacker)
+set(CXX_STANDARD 17)
+find_package(Boost 1.83.0 REQUIRED)
+add_executable(MCPacker src/main.cpp src/Mod.cpp src/ModPack.cpp)
