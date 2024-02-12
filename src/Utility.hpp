@@ -59,12 +59,13 @@ namespace MCPacker
         std::array<char, N> UTF32StringToMultiByte(std::u32string_view str)
         {
             std::array<char, N> strMultiByte;
-            std::for_each(std::begin(str), std::end(str), 
-                [&strMultiByte](char32_t c)
-                {
-                    std::mbstate_t state{};
-                    std::c32rtomb(strMultiByte.data(), c, std::addressof(state));
-                });
+            strMultiByte.fill('\0');
+            std::mbstate_t state{};
+            size_t shift = 0;
+            for (auto c : str)
+            {
+                shift += std::c32rtomb(strMultiByte.data() + shift, c, std::addressof(state));
+            }
             return strMultiByte;
         }
     }
