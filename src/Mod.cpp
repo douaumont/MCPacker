@@ -20,14 +20,18 @@
 #include <algorithm>
 #include <stdexcept>
 #include <iomanip>
+#include <cuchar>
+#include <array>
 #include <boost/format.hpp>
 #include "Mod.hpp"
+#include "Utility.hpp"
 
 using boost::format;
+namespace fs = std::filesystem;
 
-MCPacker::Mod::Mod(std::filesystem::path pathToJar)
+MCPacker::Mod::Mod(fs::path pathToJar)
 {
-    if (not std::filesystem::exists(pathToJar))
+    if (not fs::exists(pathToJar))
     {
         const auto message = format(u8"File %1% does not exist!") % std::quoted(pathToJar.u8string());
         throw std::invalid_argument(message.str());
@@ -37,7 +41,7 @@ MCPacker::Mod::Mod(std::filesystem::path pathToJar)
         std::ifstream jar(pathToJar, std::ios::binary);
         if (jar.is_open())
         {
-            data.reserve(std::filesystem::file_size(pathToJar));
+            data.reserve(fs::file_size(pathToJar));
             std::copy(std::istreambuf_iterator(jar), std::istreambuf_iterator<char>(),
                     std::back_inserter(data));
             name = pathToJar.filename().u32string();
@@ -52,10 +56,10 @@ MCPacker::Mod::Mod(std::filesystem::path pathToJar)
 
 void MCPacker::Mod::WriteToFile(std::ostream& modPackFile) const
 {
-    std::copy(std::begin(name), std::end(name), std::ostreambuf_iterator(modPackFile));
+    const auto dataSize = Utility::ToByteArray(data.size());
+    const auto nameMultiByte = Utility::UTF32StringToMultiByte<sizeof(decltype(name)::value_type) * MaxModNameSize>(name);
 
-    uint64_t dataSize = data.size();
-    modPackFile.write(reinterpret_cast<char*>(std::addressof(dataSize)), sizeof(dataSize));
-
+    std::copy(std::begin(nameMultiByte), std::end(nameMultiByte), std::ostreambuf_iterator(modPackFile));
+    std::copy(std::begin(dataSize), std::end(dataSize), std::ostreambuf_iterator(modPackFile));
     std::copy(std::begin(data), std::end(data), std::ostreambuf_iterator(modPackFile));
 }
