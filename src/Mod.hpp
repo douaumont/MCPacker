@@ -29,14 +29,27 @@ namespace MCPacker
 {
     constexpr size_t MaxModNameSize = 255;
 
+    /// @brief Class that represents a mod
+    /// @details This class stores a mod as a binary array and the mod's name
     class Mod 
     {
     private:
+        
+        /// @brief Mod's name in UTF-32 encoding
         std::u32string name;
+        
+        /// @brief Binary content of the mod 
         std::vector<uint8_t> data;
 
     public:
+        /// @brief Construct a mod from the corresponding .jar file
+        /// @param pathToJar
         Mod(std::filesystem::path pathToJar);
+
+        /// @brief Write this mod's representation into ModPack file
+        /// @param modPackFile 
+        /// @warning This function is only used by ModPack class
+        /// Normally it shouldn't be called from anywhere else
         void WriteToFile(std::ostream& modPackFile) const;
     };
 }

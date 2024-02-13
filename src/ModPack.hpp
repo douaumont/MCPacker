@@ -30,7 +30,7 @@ namespace MCPacker
     {
     public:
         static constexpr size_t NameLength = 255, DescriptionLength = 2048;
-        static const std::u32string PackExt;
+        static const std::u32string_view PackExt;
 
     private:
         std::u32string name, description;
@@ -38,6 +38,7 @@ namespace MCPacker
 
     public:
         ModPack();
+        ModPack(std::filesystem::path packFile);
         ModPack(std::u32string_view name, std::optional<std::u32string_view> description, const std::vector<std::filesystem::path>& modPaths);
         void AddMod(std::filesystem::path pathToJar);
         void WriteToFile(std::filesystem::path where) const;

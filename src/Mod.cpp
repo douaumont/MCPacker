@@ -23,10 +23,12 @@
 #include <cuchar>
 #include <array>
 #include <boost/format.hpp>
+#include <boost/locale.hpp>
 #include "Mod.hpp"
 #include "Utility.hpp"
 
 using boost::format;
+using namespace boost::locale::conv;
 namespace fs = std::filesystem;
 
 MCPacker::Mod::Mod(fs::path pathToJar)
@@ -57,9 +59,10 @@ MCPacker::Mod::Mod(fs::path pathToJar)
 void MCPacker::Mod::WriteToFile(std::ostream& modPackFile) const
 {
     const auto dataSize = Utility::ToByteArray(data.size());
-    const auto nameMultiByte = Utility::UTF32StringToMultiByte<sizeof(decltype(name)::value_type) * MaxModNameSize>(name);
+    auto nameUTF8 = utf_to_utf<char>(name);
+    nameUTF8.resize(MaxModNameSize, '\0');
 
-    std::copy(std::begin(nameMultiByte), std::end(nameMultiByte), std::ostreambuf_iterator(modPackFile));
+    std::copy(std::begin(nameUTF8), std::end(nameUTF8), std::ostreambuf_iterator(modPackFile));
     std::copy(std::begin(dataSize), std::end(dataSize), std::ostreambuf_iterator(modPackFile));
     std::copy(std::begin(data), std::end(data), std::ostreambuf_iterator(modPackFile));
 }

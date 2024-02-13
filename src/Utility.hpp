@@ -22,15 +22,18 @@
 #include <type_traits>
 #include <algorithm>
 #include <cstdint>
-#include <stdexcept>
-#include <string_view>
-#include <cuchar>
 #include <boost/endian.hpp>
 
 namespace MCPacker
 {
+    /// @brief Namespace with some utility function used by other parts of the program
     namespace Utility 
     {
+
+        /// @brief Converts integral to a byte array with big-endian encoding
+        /// @tparam Integral 
+        /// @param n Number to convert
+        /// @return Number as byte array
         template<typename Integral>
         std::array<uint8_t, sizeof(Integral)> ToByteArray(Integral n)
         {
@@ -42,6 +45,10 @@ namespace MCPacker
             return bytes;
         }
 
+        /// @brief Convert big-endian byte arrat to an Integral type
+        /// @tparam Integral 
+        /// @param bytes Big-endian byte representation of a number
+        /// @return Number represented by the byte array
         template<typename Integral>
         Integral FromByteArray(const std::array<uint8_t, sizeof(Integral)>& bytes)
         {
@@ -53,20 +60,6 @@ namespace MCPacker
             Integral inBigEndian;
             std::copy(std::begin(bytes), std::end(bytes), reinterpret_cast<uint8_t*>(std::addressof(inBigEndian)));
             return boost::endian::big_to_native(inBigEndian);
-        }
-
-        template<size_t N>
-        std::array<char, N> UTF32StringToMultiByte(std::u32string_view str)
-        {
-            std::array<char, N> strMultiByte;
-            strMultiByte.fill('\0');
-            std::mbstate_t state{};
-            size_t shift = 0;
-            for (auto c : str)
-            {
-                shift += std::c32rtomb(strMultiByte.data() + shift, c, std::addressof(state));
-            }
-            return strMultiByte;
         }
     }
 }

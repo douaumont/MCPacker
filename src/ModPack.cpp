@@ -19,28 +19,22 @@
 #include <boost/format.hpp>
 #include <boost/locale.hpp>
 #include "ModPack.hpp"
+#include "Utility.hpp"
 
 using boost::format;
+using namespace boost::locale::conv;
 
-const std::u32string MCPacker::ModPack::PackExt = U".pck";
-
-namespace 
-{
-    void EraseTrailingZeroes(std::u32string& str)
-    {
-        auto begin = std::rbegin(str);
-        while (begin != std::rend(str) and *begin == U'\0')
-        {
-            ++begin;
-        }
-        str.erase(begin.base(), std::end(str));
-    }
-}
+const std::u32string_view MCPacker::ModPack::PackExt = U".pck";
 
 MCPacker::ModPack::ModPack()
 {
     name.resize(NameLength);
     description.resize(DescriptionLength, U'\0');
+}
+
+MCPacker::ModPack::ModPack(std::filesystem::path packFile)
+{
+
 }
 
 MCPacker::ModPack::ModPack(std::u32string_view name, std::optional<std::u32string_view> description, const std::vector<std::filesystem::path>& modPaths)
@@ -74,14 +68,24 @@ void MCPacker::ModPack::WriteToFile(std::filesystem::path where) const
         throw std::invalid_argument(message.str());
     }
 
-    auto nameWithExt = name;
-    EraseTrailingZeroes(nameWithExt);
-    nameWithExt += PackExt;
+    std::u32string nameWithExt;
+    std::copy_if(std::begin(name), std::end(name), std::back_inserter(nameWithExt), 
+        [](char32_t c) {return c != U'\0';});
+    std::copy(std::begin(PackExt), std::end(PackExt), std::back_inserter(nameWithExt));
+
     where /= nameWithExt;
 
     std::ofstream pack(where, std::ios::binary);
-    std::copy(std::begin(name), std::end(name), std::ostreambuf_iterator(pack));
-    std::copy(std::begin(description), std::end(description), std::ostreambuf_iterator(pack));
+    constexpr auto sizeOfNameInBytes = sizeof(decltype(name)::value_type) * NameLength;
+    constexpr auto sizeOfDescriptionInBytes = sizeof(decltype(description)::value_type) * DescriptionLength;
+
+    auto narrowName = utf_to_utf<char>(name);
+    narrowName.resize(sizeOfNameInBytes, 0);
+    auto narrowDescription = utf_to_utf<char>(description);
+    narrowDescription.resize(sizeOfDescriptionInBytes);
+
+    std::copy(std::begin(narrowName), std::end(narrowName), std::ostreambuf_iterator(pack));
+    std::copy(std::begin(narrowDescription), std::end(narrowDescription), std::ostreambuf_iterator(pack));
     std::for_each(std::begin(mods), std::end(mods), 
         [&pack](const Mod& mod)
         {
