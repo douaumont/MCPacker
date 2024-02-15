@@ -28,13 +28,27 @@ const std::u32string_view MCPacker::ModPack::PackExt = U".pck";
 
 MCPacker::ModPack::ModPack()
 {
-    name.resize(NameLength);
-    description.resize(DescriptionLength, U'\0');
 }
 
 MCPacker::ModPack::ModPack(std::filesystem::path packFile)
 {
+    std::ifstream pack(packFile);
 
+    {
+        std::string narrowName(NameLength * sizeof(decltype(name)::value_type), 0);
+        std::string narrowDescription(DescriptionLength * sizeof(decltype(description)::value_type), 0);
+
+        pack.read(narrowName.data(), narrowName.length());
+        pack.read(narrowDescription.data(), narrowDescription.length());
+
+        std::u32string nameAsStr = utf_to_utf<decltype(name)::value_type>(narrowName);
+        std::u32string descriptionAsStr = utf_to_utf<decltype(description)::value_type>(narrowDescription);
+
+        std::copy(std::begin(nameAsStr), std::begin(nameAsStr) + NameLength, std::begin(name));
+        std::copy(std::begin(descriptionAsStr), std::begin(descriptionAsStr) + DescriptionLength, std::begin(description));
+    }
+
+    
 }
 
 MCPacker::ModPack::ModPack(std::u32string_view name, std::optional<std::u32string_view> description, const std::vector<std::filesystem::path>& modPaths)
@@ -79,10 +93,19 @@ void MCPacker::ModPack::WriteToFile(std::filesystem::path where) const
     constexpr auto sizeOfNameInBytes = sizeof(decltype(name)::value_type) * NameLength;
     constexpr auto sizeOfDescriptionInBytes = sizeof(decltype(description)::value_type) * DescriptionLength;
 
-    auto narrowName = utf_to_utf<char>(name);
+    std::u32string nameAsStr(sizeOfNameInBytes, 0);
+    std::copy(std::begin(name), std::end(name), std::begin(nameAsStr));
+    std::string narrowName = utf_to_utf<char>(nameAsStr);
     narrowName.resize(sizeOfNameInBytes, 0);
-    auto narrowDescription = utf_to_utf<char>(description);
-    narrowDescription.resize(sizeOfDescriptionInBytes);
+
+    assert(narrowName.length() == sizeOfNameInBytes);
+
+    std::u32string descriptionAsStr(sizeOfDescriptionInBytes, 0);
+    std::copy(std::begin(description), std::end(description), std::begin(descriptionAsStr));
+    std::string narrowDescription = utf_to_utf<char>(descriptionAsStr);
+    narrowDescription.resize(sizeOfDescriptionInBytes, 0);
+
+    assert(narrowDescription.length() == sizeOfDescriptionInBytes);
 
     std::copy(std::begin(narrowName), std::end(narrowName), std::ostreambuf_iterator(pack));
     std::copy(std::begin(narrowDescription), std::end(narrowDescription), std::ostreambuf_iterator(pack));

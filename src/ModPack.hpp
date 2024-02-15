@@ -33,7 +33,8 @@ namespace MCPacker
         static const std::u32string_view PackExt;
 
     private:
-        std::u32string name, description;
+        std::array<char32_t, NameLength> name;
+        std::array<char32_t, DescriptionLength> description;
         std::vector<Mod> mods;
 
     public:

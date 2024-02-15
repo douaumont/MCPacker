@@ -33,13 +33,24 @@ namespace MCPacker
     /// @details This class stores a mod as a binary array and the mod's name
     class Mod 
     {
+    public:
+        /// @brief Struct that stores meta information about a mod
+        struct MetaInfo
+        {
+            using Char = char32_t;
+            using Byte = uint8_t;
+            static constexpr size_t NameLength = 255;
+            static constexpr size_t NameLengthInBytes = NameLength * sizeof(char);
+
+            /// @brief Mod's name in UTF-32 encoding
+            std::array<Char, NameLength> name;    
+        };
+
     private:
-        
-        /// @brief Mod's name in UTF-32 encoding
-        std::u32string name;
-        
+        MetaInfo metaInfo;
+
         /// @brief Binary content of the mod 
-        std::vector<uint8_t> data;
+        std::vector<MetaInfo::Byte> data;
 
     public:
         /// @brief Construct a mod from the corresponding .jar file

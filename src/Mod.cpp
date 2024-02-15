@@ -20,7 +20,6 @@
 #include <algorithm>
 #include <stdexcept>
 #include <iomanip>
-#include <cuchar>
 #include <array>
 #include <boost/format.hpp>
 #include <boost/locale.hpp>
@@ -46,7 +45,8 @@ MCPacker::Mod::Mod(fs::path pathToJar)
             data.reserve(fs::file_size(pathToJar));
             std::copy(std::istreambuf_iterator(jar), std::istreambuf_iterator<char>(),
                     std::back_inserter(data));
-            name = pathToJar.filename().u32string();
+            auto&& p = pathToJar.filename().u32string();
+            std::copy(std::begin(p), std::end(p), std::begin(metaInfo.name));
         }
         else
         {
@@ -59,10 +59,11 @@ MCPacker::Mod::Mod(fs::path pathToJar)
 void MCPacker::Mod::WriteToFile(std::ostream& modPackFile) const
 {
     const auto dataSize = Utility::ToByteArray(data.size());
-    auto nameUTF8 = utf_to_utf<char>(name);
-    nameUTF8.resize(MaxModNameSize, '\0');
+    std::u32string name(std::begin(metaInfo.name), std::end(metaInfo.name));
+    auto narrowName = utf_to_utf<char>(name);
+    narrowName.resize(MetaInfo::NameLengthInBytes, '\0');
 
-    std::copy(std::begin(nameUTF8), std::end(nameUTF8), std::ostreambuf_iterator(modPackFile));
+    std::copy(std::begin(narrowName), std::end(narrowName), std::ostreambuf_iterator(modPackFile));
     std::copy(std::begin(dataSize), std::end(dataSize), std::ostreambuf_iterator(modPackFile));
     std::copy(std::begin(data), std::end(data), std::ostreambuf_iterator(modPackFile));
 }
