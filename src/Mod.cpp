@@ -34,7 +34,7 @@ MCPacker::Mod::Mod(fs::path pathToJar)
 {
     if (not fs::exists(pathToJar))
     {
-        const auto message = format(u8"File %1% does not exist!") % std::quoted(pathToJar.u8string());
+        const auto message = format("File %1% does not exist!") % std::quoted(pathToJar.string());
         throw std::invalid_argument(message.str());
     }
 
@@ -50,7 +50,7 @@ MCPacker::Mod::Mod(fs::path pathToJar)
         }
         else
         {
-            const auto message = format(u8"Unable to read file %1%!") % pathToJar.filename().u8string();
+            const auto message = format("Unable to read file %1%!") % pathToJar.filename().string();
             throw std::runtime_error(message.str());
         }
     }

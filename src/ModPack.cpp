@@ -78,7 +78,7 @@ void MCPacker::ModPack::WriteToFile(std::filesystem::path where) const
 {
     if (not std::filesystem::is_directory(where))
     {
-        const auto message = format(u8"Path %1% is not a directory!") % std::quoted(where.u8string());
+        const auto message = format("Path %1% is not a directory!") % std::quoted(where.string());
         throw std::invalid_argument(message.str());
     }
 

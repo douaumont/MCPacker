@@ -37,7 +37,7 @@ namespace MCPacker
         template<typename Integral>
         std::array<uint8_t, sizeof(Integral)> ToByteArray(Integral n)
         {
-            static_assert(std::is_integral<Integral>::value, u8"Argument must be of integral type");
+            static_assert(std::is_integral<Integral>::value, "Argument must be of integral type");
             Integral inBigEndian = boost::endian::native_to_big(n);
             Integral* addr = std::addressof(inBigEndian);
             std::array<uint8_t, sizeof(Integral)> bytes;
@@ -52,10 +52,10 @@ namespace MCPacker
         template<typename Integral>
         Integral FromByteArray(const std::array<uint8_t, sizeof(Integral)>& bytes)
         {
-            static_assert(std::is_integral<Integral>::value, u8"Argument must be of integral type");
+            static_assert(std::is_integral<Integral>::value, "Argument must be of integral type");
             if (bytes.size() != sizeof(Integral))
             {
-                throw std::invalid_argument(u8"Size of byte array must be equal to size of the desired type!");
+                throw std::invalid_argument("Size of byte array must be equal to size of the desired type!");
             }
             Integral inBigEndian;
             std::copy(std::begin(bytes), std::end(bytes), reinterpret_cast<uint8_t*>(std::addressof(inBigEndian)));
