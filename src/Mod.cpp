@@ -21,13 +21,13 @@
 #include <stdexcept>
 #include <iomanip>
 #include <array>
+#include <ranges>
 #include <boost/format.hpp>
-#include <boost/locale.hpp>
 #include "Mod.hpp"
 #include "Utility.hpp"
 
 using boost::format;
-using namespace boost::locale::conv;
+using namespace MCPacker::Utility::Definitions;
 namespace fs = std::filesystem;
 
 MCPacker::Mod::Mod(fs::path pathToJar)
@@ -39,14 +39,13 @@ MCPacker::Mod::Mod(fs::path pathToJar)
     }
 
     {
-        std::ifstream jar(pathToJar, std::ios::binary);
+        InputBinaryFile jar(pathToJar, std::ios::binary);
         if (jar.is_open())
         {
             data.reserve(fs::file_size(pathToJar));
-            std::copy(std::istreambuf_iterator(jar), std::istreambuf_iterator<char>(),
+            std::copy(std::istreambuf_iterator(jar), std::istreambuf_iterator<Byte>(),
                     std::back_inserter(data));
-            auto&& p = pathToJar.filename().u32string();
-            std::copy(std::begin(p), std::end(p), std::begin(metaInfo.name));
+            std::ranges::copy(pathToJar.filename().u32string(), std::begin(metaInfo.name));
         }
         else
         {
@@ -56,14 +55,34 @@ MCPacker::Mod::Mod(fs::path pathToJar)
     }
 }
 
-void MCPacker::Mod::WriteToFile(std::ostream& modPackFile) const
+MCPacker::Mod::Mod(InputBinaryFile& pack)
 {
-    const auto dataSize = Utility::ToByteArray(data.size());
-    std::u32string name(std::begin(metaInfo.name), std::end(metaInfo.name));
-    auto narrowName = utf_to_utf<char>(name);
-    narrowName.resize(MetaInfo::NameLengthInBytes, '\0');
+    std::array<uint8_t, MetaInfo::NameLengthInBytes> name;
+    std::array<uint8_t, sizeof(uint64_t)> dataSize;
 
-    std::copy(std::begin(narrowName), std::end(narrowName), std::ostreambuf_iterator(modPackFile));
+    pack.read(name.data(), name.size());
+    pack.read(dataSize.data(), dataSize.size());
+
+    metaInfo.name = Utility::FromUTF8Array(name);
+    data.resize(Utility::FromByteArray<uint64_t>(dataSize));
+    pack.read(data.data(), data.size());
+}
+
+void MCPacker::Mod::WriteToPack(OutputBinaryFile& modPackFile) const
+{
+    const auto dataSize = Utility::ToByteArray(static_cast<uint64_t>(data.size()));
+    const auto name = Utility::ToUTF8Array<MetaInfo::NameLength>(std::u32string_view(std::begin(metaInfo.name), std::end(metaInfo.name)));
+
+    std::copy(std::begin(name), std::end(name), std::ostreambuf_iterator(modPackFile));
     std::copy(std::begin(dataSize), std::end(dataSize), std::ostreambuf_iterator(modPackFile));
     std::copy(std::begin(data), std::end(data), std::ostreambuf_iterator(modPackFile));
+}
+
+void MCPacker::Mod::WriteToFile(std::filesystem::path where) const
+{
+    auto end = std::ranges::find_if(metaInfo.name, Utility::EqualsZero<char32_t>());
+    auto pathToJar = where / std::u32string_view(std::begin(metaInfo.name), end);
+
+    OutputBinaryFile jar(pathToJar, std::ios::binary | std::ios::out | std::ios::trunc);
+    jar.write(data.data(), data.size());
 }

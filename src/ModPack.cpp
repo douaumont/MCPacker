@@ -17,49 +17,57 @@
 
 #include <fstream>
 #include <boost/format.hpp>
-#include <boost/locale.hpp>
 #include "ModPack.hpp"
 #include "Utility.hpp"
 
 using boost::format;
-using namespace boost::locale::conv;
+using namespace MCPacker::Utility::Definitions;
 
-const std::u32string_view MCPacker::ModPack::PackExt = U".pck";
+const std::u32string_view MCPacker::ModPack::MetaInfo::PackExt = U".pck";
+
+MCPacker::ModPack::MetaInfo::MetaInfo()
+{
+    name.fill(0);
+    description.fill(0);
+}
 
 MCPacker::ModPack::ModPack()
 {
+
 }
 
 MCPacker::ModPack::ModPack(std::filesystem::path packFile)
 {
-    std::ifstream pack(packFile);
+    InputBinaryFile pack(packFile);
 
     {
-        std::string narrowName(NameLength * sizeof(decltype(name)::value_type), 0);
-        std::string narrowDescription(DescriptionLength * sizeof(decltype(description)::value_type), 0);
+        std::array<Byte, MetaInfo::NameLength * sizeof(char32_t)> name;
+        std::array<Byte, MetaInfo::DescriptionLength * sizeof(char32_t)> description;
+        name.fill(0);
+        description.fill(0);
 
-        pack.read(narrowName.data(), narrowName.length());
-        pack.read(narrowDescription.data(), narrowDescription.length());
+        pack.read(name.data(), name.size());
+        pack.read(description.data(), description.size());
 
-        std::u32string nameAsStr = utf_to_utf<decltype(name)::value_type>(narrowName);
-        std::u32string descriptionAsStr = utf_to_utf<decltype(description)::value_type>(narrowDescription);
-
-        std::copy(std::begin(nameAsStr), std::begin(nameAsStr) + NameLength, std::begin(name));
-        std::copy(std::begin(descriptionAsStr), std::begin(descriptionAsStr) + DescriptionLength, std::begin(description));
+        metaInfo.name = Utility::FromUTF8Array(name);
+        metaInfo.description = Utility::FromUTF8Array(description);
     }
 
-    
+    while(not pack.eof())
+    {
+        mods.emplace_back(pack);
+    }
 }
 
 MCPacker::ModPack::ModPack(std::u32string_view name, std::optional<std::u32string_view> description, const std::vector<std::filesystem::path>& modPaths)
     :
     ModPack()
 {
-    std::copy(std::begin(name), std::end(name), std::begin(this->name));
+    std::copy(std::begin(name), std::end(name), std::begin(metaInfo.name));
     
     if (description.has_value())
     {
-        std::copy(std::begin(*description), std::end(*description), std::begin(this->description));
+        std::copy(std::begin(*description), std::end(*description), std::begin(metaInfo.description));
     }
 
     std::for_each(std::begin(modPaths), std::end(modPaths), 
@@ -83,35 +91,32 @@ void MCPacker::ModPack::WriteToFile(std::filesystem::path where) const
     }
 
     std::u32string nameWithExt;
-    std::copy_if(std::begin(name), std::end(name), std::back_inserter(nameWithExt), 
-        [](char32_t c) {return c != U'\0';});
-    std::copy(std::begin(PackExt), std::end(PackExt), std::back_inserter(nameWithExt));
+    std::ranges::copy_if(metaInfo.name, std::back_inserter(nameWithExt), Utility::NotEqualsZero<char32_t>());
+    std::ranges::copy(MetaInfo::PackExt, std::back_inserter(nameWithExt));
 
     where /= nameWithExt;
 
-    std::ofstream pack(where, std::ios::binary);
-    constexpr auto sizeOfNameInBytes = sizeof(decltype(name)::value_type) * NameLength;
-    constexpr auto sizeOfDescriptionInBytes = sizeof(decltype(description)::value_type) * DescriptionLength;
+    OutputBinaryFile pack(where, std::ios::binary);
 
-    std::u32string nameAsStr(sizeOfNameInBytes, 0);
-    std::copy(std::begin(name), std::end(name), std::begin(nameAsStr));
-    std::string narrowName = utf_to_utf<char>(nameAsStr);
-    narrowName.resize(sizeOfNameInBytes, 0);
-
-    assert(narrowName.length() == sizeOfNameInBytes);
-
-    std::u32string descriptionAsStr(sizeOfDescriptionInBytes, 0);
-    std::copy(std::begin(description), std::end(description), std::begin(descriptionAsStr));
-    std::string narrowDescription = utf_to_utf<char>(descriptionAsStr);
-    narrowDescription.resize(sizeOfDescriptionInBytes, 0);
-
-    assert(narrowDescription.length() == sizeOfDescriptionInBytes);
-
-    std::copy(std::begin(narrowName), std::end(narrowName), std::ostreambuf_iterator(pack));
-    std::copy(std::begin(narrowDescription), std::end(narrowDescription), std::ostreambuf_iterator(pack));
+    std::ranges::copy(Utility::ToUTF8Array<MetaInfo::NameLength>(std::u32string_view(std::begin(metaInfo.name), std::end(metaInfo.name))), std::ostreambuf_iterator(pack));
+    std::ranges::copy(Utility::ToUTF8Array<MetaInfo::DescriptionLength>(std::u32string_view(std::begin(metaInfo.description), std::end(metaInfo.description))), std::ostreambuf_iterator(pack));
     std::for_each(std::begin(mods), std::end(mods), 
         [&pack](const Mod& mod)
         {
-            mod.WriteToFile(pack);
+            mod.WriteToPack(pack);
+        });
+}
+
+void MCPacker::ModPack::Deploy(std::filesystem::path where) const
+{
+    if (not std::filesystem::exists(where))
+    {
+        std::filesystem::create_directory(where);
+    }
+
+    std::ranges::for_each(mods, 
+        [&where](const MCPacker::Mod& mod)
+        {
+            mod.WriteToFile(where);
         });
 }

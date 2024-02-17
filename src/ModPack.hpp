@@ -29,12 +29,19 @@ namespace MCPacker
     class ModPack
     {
     public:
-        static constexpr size_t NameLength = 255, DescriptionLength = 2048;
-        static const std::u32string_view PackExt;
+        struct MetaInfo 
+        {
+            static constexpr size_t NameLength = 255, DescriptionLength = 2048;
+            static const std::u32string_view PackExt;
+
+            std::array<char32_t, NameLength> name;
+            std::array<char32_t, DescriptionLength> description;
+
+            MetaInfo();
+        };
 
     private:
-        std::array<char32_t, NameLength> name;
-        std::array<char32_t, DescriptionLength> description;
+        MetaInfo metaInfo;
         std::vector<Mod> mods;
 
     public:
@@ -43,6 +50,7 @@ namespace MCPacker
         ModPack(std::u32string_view name, std::optional<std::u32string_view> description, const std::vector<std::filesystem::path>& modPaths);
         void AddMod(std::filesystem::path pathToJar);
         void WriteToFile(std::filesystem::path where) const;
+        void Deploy(std::filesystem::path where) const;
     };
 }
 

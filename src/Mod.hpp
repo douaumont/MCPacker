@@ -37,31 +37,36 @@ namespace MCPacker
         /// @brief Struct that stores meta information about a mod
         struct MetaInfo
         {
-            using Char = char32_t;
-            using Byte = uint8_t;
             static constexpr size_t NameLength = 255;
-            static constexpr size_t NameLengthInBytes = NameLength * sizeof(char);
+            static constexpr size_t NameLengthInBytes = NameLength * sizeof(char32_t);
 
             /// @brief Mod's name in UTF-32 encoding
-            std::array<Char, NameLength> name;    
+            std::array<char32_t, NameLength> name;    
         };
 
     private:
         MetaInfo metaInfo;
 
         /// @brief Binary content of the mod 
-        std::vector<MetaInfo::Byte> data;
+        std::vector<Utility::Definitions::Byte> data;
 
     public:
-        /// @brief Construct a mod from the corresponding .jar file
+        /// @brief Construct a mod from the corresponding `.jar` file
         /// @param pathToJar
         Mod(std::filesystem::path pathToJar);
 
-        /// @brief Write this mod's representation into ModPack file
+
+        /// @brief Construct from a `pack` file
+        /// @param pack 
+        Mod(Utility::Definitions::InputBinaryFile& pack);
+
+        /// @brief Write this mod's representation into `ModPack` file
         /// @param modPackFile 
         /// @warning This function is only used by ModPack class
         /// Normally it shouldn't be called from anywhere else
-        void WriteToFile(std::ostream& modPackFile) const;
+        void WriteToPack(Utility::Definitions::OutputBinaryFile& modPackFile) const;
+
+        void WriteToFile(std::filesystem::path where) const;
     };
 }
 
