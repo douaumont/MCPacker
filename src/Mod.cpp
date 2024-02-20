@@ -22,7 +22,9 @@
 #include <iomanip>
 #include <array>
 #include <ranges>
+#include <type_traits>
 #include <boost/format.hpp>
+#include <boost/numeric/conversion/cast.hpp>
 #include "Mod.hpp"
 #include "Utility.hpp"
 
@@ -30,7 +32,17 @@ using boost::format;
 using namespace MCPacker::Utility::Definitions;
 namespace fs = std::filesystem;
 
+MCPacker::Mod::MetaInfo::MetaInfo() 
+    :
+    name()
+{
+    name.fill(0);
+}
+
 MCPacker::Mod::Mod(fs::path pathToJar)
+    :
+    metaInfo(),
+    data()
 {
     if (not fs::exists(pathToJar))
     {
@@ -55,17 +67,33 @@ MCPacker::Mod::Mod(fs::path pathToJar)
     }
 }
 
-MCPacker::Mod::Mod(InputBinaryFile& pack)
+MCPacker::Mod::Mod(InputBinaryFile& pack, Utility::ReadingMode readingMode)
+    :
+    metaInfo(),
+    data()
 {
-    std::array<uint8_t, MetaInfo::NameLengthInBytes> name;
-    std::array<uint8_t, sizeof(uint64_t)> dataSize;
+    std::array<Byte, MetaInfo::NameLengthInBytes> name;
+    std::array<Byte, sizeof(uint64_t)> dataSizeSerialised;
 
     pack.read(name.data(), name.size());
-    pack.read(dataSize.data(), dataSize.size());
-
+    pack.read(dataSizeSerialised.data(), dataSizeSerialised.size());
     metaInfo.name = Utility::FromUTF8Array(name);
-    data.resize(Utility::FromByteArray<uint64_t>(dataSize));
-    pack.read(data.data(), data.size());
+    const auto dataSize = Utility::FromByteArray<uint64_t>(dataSizeSerialised);
+
+    switch (readingMode)
+    {
+        case Utility::ReadingMode::Full:
+            data.resize(dataSize);
+            pack.read(data.data(), data.size());
+            break;
+        
+        case Utility::ReadingMode::OnlyMetaInfo:
+            pack.seekg(pack.tellg() + boost::numeric_cast<std::remove_cvref_t<decltype(pack)>::pos_type>(dataSize));
+            break;
+
+        default:
+            throw std::invalid_argument("Unrecognised reading mode");
+    }
 }
 
 void MCPacker::Mod::WriteToPack(OutputBinaryFile& modPackFile) const

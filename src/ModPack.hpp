@@ -44,9 +44,13 @@ namespace MCPacker
         MetaInfo metaInfo;
         std::vector<Mod> mods;
 
-    public:
         ModPack();
-        ModPack(std::filesystem::path packFile);
+
+    public:
+        /// @brief Construct pack from a `.pck` file
+        /// @param packFile Path to `.pck`
+        /// @param readingMode Refer to `Utility::ReadingMode`
+        ModPack(std::filesystem::path packFile, Utility::ReadingMode readingMode = Utility::ReadingMode::Full);
         ModPack(std::u32string_view name, std::optional<std::u32string_view> description, const std::vector<std::filesystem::path>& modPaths);
         void AddMod(std::filesystem::path pathToJar);
         void WriteToFile(std::filesystem::path where) const;

@@ -22,23 +22,31 @@
 
 using boost::format;
 using namespace MCPacker::Utility::Definitions;
+using MCPacker::Utility::ReadingMode;
 
 const std::u32string_view MCPacker::ModPack::MetaInfo::PackExt = U".pck";
 
 MCPacker::ModPack::MetaInfo::MetaInfo()
+    :
+    name(),
+    description()
 {
     name.fill(0);
     description.fill(0);
 }
 
 MCPacker::ModPack::ModPack()
+    :
+    metaInfo(),
+    mods()
 {
 
 }
 
-MCPacker::ModPack::ModPack(std::filesystem::path packFile)
+MCPacker::ModPack::ModPack(std::filesystem::path packFile, Utility::ReadingMode readingMode)
 {
     InputBinaryFile pack(packFile);
+    const auto packSize = std::filesystem::file_size(packFile);
 
     {
         std::array<Byte, MetaInfo::NameLength * sizeof(char32_t)> name;
@@ -53,9 +61,9 @@ MCPacker::ModPack::ModPack(std::filesystem::path packFile)
         metaInfo.description = Utility::FromUTF8Array(description);
     }
 
-    while(not pack.eof())
+    while(pack.tellg() < packSize)
     {
-        mods.emplace_back(pack);
+        mods.emplace_back(pack, readingMode);
     }
 }
 

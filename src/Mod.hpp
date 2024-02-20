@@ -24,6 +24,7 @@
 #include <filesystem>
 #include <string>
 #include <array>
+#include "Utility.hpp"
 
 namespace MCPacker
 {
@@ -41,7 +42,9 @@ namespace MCPacker
             static constexpr size_t NameLengthInBytes = NameLength * sizeof(char32_t);
 
             /// @brief Mod's name in UTF-32 encoding
-            std::array<char32_t, NameLength> name;    
+            std::array<char32_t, NameLength> name;   
+
+            MetaInfo(); 
         };
 
     private:
@@ -49,7 +52,6 @@ namespace MCPacker
 
         /// @brief Binary content of the mod 
         std::vector<Utility::Definitions::Byte> data;
-
     public:
         /// @brief Construct a mod from the corresponding `.jar` file
         /// @param pathToJar
@@ -58,7 +60,7 @@ namespace MCPacker
 
         /// @brief Construct from a `pack` file
         /// @param pack 
-        Mod(Utility::Definitions::InputBinaryFile& pack);
+        Mod(Utility::Definitions::InputBinaryFile& pack, Utility::ReadingMode readingMode = Utility::ReadingMode::Full);
 
         /// @brief Write this mod's representation into `ModPack` file
         /// @param modPackFile 
