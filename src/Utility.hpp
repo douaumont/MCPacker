@@ -24,6 +24,7 @@
 #include <cstdint>
 #include <concepts>
 #include <ranges>
+#include <string>
 #include <utf8.h>
 #include <boost/endian.hpp>
 
@@ -135,7 +136,16 @@ namespace MCPacker
             auto end = std::ranges::find_if(utf8str, EqualsZero<Definitions::Byte>());
             utf8::utf8to32(std::begin(utf8str), end, std::begin(utf32str));
             return utf32str;
-        } 
+        }
+
+        template<size_t N>
+        std::string UTF32ArrayToUTF8String(const std::array<char32_t, N>& utf32array)
+        {
+            std::string utf8str;
+            const auto end = std::ranges::find_if(utf32array, EqualsZero<char32_t>());
+            utf8::utf32to8(std::begin(utf32array), end, std::back_inserter(utf8str));
+            return utf8str;
+        }
     }
 }
 

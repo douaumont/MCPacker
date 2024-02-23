@@ -38,6 +38,7 @@ namespace MCPacker
             std::array<char32_t, DescriptionLength> description;
 
             MetaInfo();
+            std::string GetNameInUTF8() const;
         };
 
     private:
@@ -55,6 +56,7 @@ namespace MCPacker
         void AddMod(std::filesystem::path pathToJar);
         void WriteToFile(std::filesystem::path where) const;
         void Deploy(std::filesystem::path where) const;
+        const MetaInfo& GetMetaInfo() const;
     };
 }
 

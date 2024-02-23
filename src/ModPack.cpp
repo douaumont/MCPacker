@@ -16,7 +16,10 @@
  */
 
 #include <fstream>
+#include <algorithm>
+#include <ranges>
 #include <boost/format.hpp>
+#include <boost/algorithm/cxx11/copy_if.hpp>
 #include "ModPack.hpp"
 #include "Utility.hpp"
 
@@ -33,6 +36,11 @@ MCPacker::ModPack::MetaInfo::MetaInfo()
 {
     name.fill(0);
     description.fill(0);
+}
+
+std::string MCPacker::ModPack::MetaInfo::GetNameInUTF8() const
+{
+    return Utility::UTF32ArrayToUTF8String(name);
 }
 
 MCPacker::ModPack::ModPack()
@@ -71,14 +79,14 @@ MCPacker::ModPack::ModPack(std::u32string_view name, std::optional<std::u32strin
     :
     ModPack()
 {
-    std::copy(std::begin(name), std::end(name), std::begin(metaInfo.name));
+    std::ranges::copy(name, std::begin(metaInfo.name));
     
     if (description.has_value())
     {
-        std::copy(std::begin(*description), std::end(*description), std::begin(metaInfo.description));
+        std::ranges::copy(*description, std::begin(metaInfo.description));
     }
 
-    std::for_each(std::begin(modPaths), std::end(modPaths), 
+    std::ranges::for_each(modPaths, 
         [this](const auto& path)
         {
             AddMod(path);
@@ -99,7 +107,7 @@ void MCPacker::ModPack::WriteToFile(std::filesystem::path where) const
     }
 
     std::u32string nameWithExt;
-    std::ranges::copy_if(metaInfo.name, std::back_inserter(nameWithExt), Utility::NotEqualsZero<char32_t>());
+    boost::algorithm::copy_until(metaInfo.name, std::back_inserter(nameWithExt), Utility::NotEqualsZero<char32_t>());
     std::ranges::copy(MetaInfo::PackExt, std::back_inserter(nameWithExt));
 
     where /= nameWithExt;
@@ -108,7 +116,7 @@ void MCPacker::ModPack::WriteToFile(std::filesystem::path where) const
 
     std::ranges::copy(Utility::ToUTF8Array<MetaInfo::NameLength>(std::u32string_view(std::begin(metaInfo.name), std::end(metaInfo.name))), std::ostreambuf_iterator(pack));
     std::ranges::copy(Utility::ToUTF8Array<MetaInfo::DescriptionLength>(std::u32string_view(std::begin(metaInfo.description), std::end(metaInfo.description))), std::ostreambuf_iterator(pack));
-    std::for_each(std::begin(mods), std::end(mods), 
+    std::ranges::for_each(mods, 
         [&pack](const Mod& mod)
         {
             mod.WriteToPack(pack);
@@ -127,4 +135,9 @@ void MCPacker::ModPack::Deploy(std::filesystem::path where) const
         {
             mod.WriteToFile(where);
         });
+}
+
+const MCPacker::ModPack::MetaInfo& MCPacker::ModPack::GetMetaInfo() const
+{
+    return metaInfo;
 }
