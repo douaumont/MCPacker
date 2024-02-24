@@ -19,7 +19,7 @@ namespace MCPacker
     public:
         static const ModPackManager& Instance();
 
-        const std::vector<ModPack>& GetModPacks() const; 
+        const std::vector<ModPack>& GetModPacks() const;
     };
 }
 

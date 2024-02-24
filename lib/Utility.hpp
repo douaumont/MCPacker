@@ -25,8 +25,8 @@
 #include <concepts>
 #include <ranges>
 #include <string>
-#include <utf8.h>
 #include <boost/endian.hpp>
+#include "utfcpp-4.0.5/utf8.h"
 
 namespace MCPacker
 {

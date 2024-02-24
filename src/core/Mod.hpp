@@ -24,7 +24,7 @@
 #include <filesystem>
 #include <string>
 #include <array>
-#include "Utility.hpp"
+#include <Utility.hpp>
 
 namespace MCPacker
 {
